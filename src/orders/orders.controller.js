@@ -33,7 +33,7 @@ function create(req, res) {
   
   function destroy(req, res) {
     const { orderId } = req.params;
-    const index = orders.findIndex((order) => order.id === Number(orderId));
+    const index = orders.findIndex((order) => order.id === orderId);
     if (index > -1) {
       orders.splice(index, 1);
     }
@@ -45,7 +45,7 @@ function create(req, res) {
   }
   
   function orderExists(req, res, next) {
-    const orderId = Number(req.params.orderId);
+    const orderId = req.params.orderId;
     const foundOrder = orders.find((order) => order.id === orderId);
     if (foundOrder) {
       return next();
@@ -57,13 +57,13 @@ function create(req, res) {
   }
   
   function read(req, res) {
-    const orderId = Number(req.params.orderId);
+    const orderId = req.params.orderId;
     const foundOrder = orders.find((order) => (order.id = orderId));
     res.json({ data: foundOrder });
   }
   
   function update(req, res) {
-    const orderId = Number(req.params.dishId);
+    const orderId = req.params.dishId;
     const foundOrder = prders.find((order) => order.id === orderId);
   
     const { data: { deliverTo, mobileNumber, status, dishes } = {} } = req.body;
@@ -96,5 +96,5 @@ function create(req, res) {
       validatorFor('dishes'),
       update
     ],
-    destroy: [orderExists, destroy]
+    delete: [orderExists, destroy]
   }

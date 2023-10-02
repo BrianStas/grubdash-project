@@ -6,6 +6,7 @@ const dishes = require(path.resolve("src/data/dishes-data"));
 // Use this function to assign ID's when necessary
 const nextId = require("../utils/nextId");
 const validatorFor = require("../utils/validatorFor");
+const id=nextId();
 
 function list(req, res) {
     res.json({ data: dishes });
@@ -14,7 +15,7 @@ function list(req, res) {
 function create(req, res) {
   const { data: { name, description, price, image_url } = {} } = req.body;
   const newDish = {
-    id: nextId,
+    id,
     name,
     description,
     price,
@@ -25,13 +26,12 @@ function create(req, res) {
 }
 
 function read(req, res) {
-    const dishId = Number(req.params.dishId);
-    const foundDish = dishes.find((dish) => (dish.id = dishId));
-    res.json({ data: foundDish });
+    console.log("read's res locals looks like this:", res.locals.dish)
+    res.json({ data: res.locals.dish });
   }
 
   function update(req, res) {
-    const dishId = Number(req.params.dishId);
+    const dishId = req.params.dishId;
     const foundDish = dishes.find((dish) => dish.id === dishId);
   
     const { data: { name, description, price, image_url } = {} } = req.body;
@@ -43,15 +43,6 @@ function read(req, res) {
   
     res.json({ data: foundDish });
   }
-
-function destroy(req, res) {
-  const { dishId } = req.params;
-  const index = dishes.findIndex((dish) => dish.id === Number(dishId));
-  if (index > -1) {
-    dishes.splice(index, 1);
-  }
-  res.sendStatus(204);
-}
 
 function validateBodyAndParamsIdMatch(req, res, next) {
   let {id}= req.body.data;
@@ -66,10 +57,11 @@ function validateBodyAndParamsIdMatch(req, res, next) {
 }
 
 function dishExists(req, res, next) {
-  const dishId = Number(req.params.dishId);
+  const dishId = req.params.dishId;
   const foundDish = dishes.find((dish) => dish.id === dishId);
   if (foundDish) {
-    return next();
+    res.locals.dish = foundDish;
+    next();
   }
   next({
     status: 404,
@@ -88,6 +80,20 @@ function validateBodyExists(req, res, next){
     }
 }
 
+function priceValidator(req, res, next){
+    const { data: {  price } = {} } = req.body;
+
+    if( typeof(price)==='number' && price > 0){
+        console.log("passed:", price)
+        next();
+    }else{
+    console.log("failed:", price)
+    next({
+        message: 'Dish must have a price that is an integer greater than 0',
+        status: 400
+    })}
+}
+
 module.exports = {
   create: [
     validateBodyExists, 
@@ -95,6 +101,7 @@ module.exports = {
     validatorFor('description'),
     validatorFor('price'),
     validatorFor('image_url'),
+    priceValidator,
     create],
   list,
   read: [dishExists, read],
@@ -106,7 +113,7 @@ module.exports = {
     validatorFor('description'),
     validatorFor('price'),
     validatorFor('image_url'),
+    priceValidator,
     update],
-  delete: destroy,
   dishExists,
 };
