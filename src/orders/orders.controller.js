@@ -48,6 +48,7 @@ function create(req, res) {
     const orderId = req.params.orderId;
     const foundOrder = orders.find((order) => order.id === orderId);
     if (foundOrder) {
+      res.locals.orders = foundOrder;
       return next();
     }
     next({
@@ -63,7 +64,7 @@ function create(req, res) {
   }
   
   function update(req, res) {
-    const orderId = req.params.dishId;
+    const orderId = req.params.orderId;
     const foundOrder = orders.find((order) => order.id === orderId);
   
     const { data: { deliverTo, mobileNumber, status, dishes } = {} } = req.body;
@@ -78,7 +79,7 @@ function create(req, res) {
 
   function dishValidator(req, res, next){
     const {data: {dishes} }= req.body;
-    if(dishes && dishes.length>0){
+    if(Array.isArray(dishes) && dishes.length>0){
         next();
     }else{
         next({
@@ -97,6 +98,43 @@ function create(req, res) {
     status: 400})
     }
     next();
+  }
+
+  function validateBodyAndParamsIdMatch(req, res, next) {
+    let {id}= req.body.data;
+    if(id && id !== req.params.orderId){
+      next({
+          status: 400,
+      message: `Order id does not match route id. Order: ${id}, Route: ${req.params.orderId}`
+      })}
+      else{
+          next();
+      }
+  }
+
+  function updateStatusValidator(req, res, next) {
+    const { data: { status } = {} } = req.body;
+    const validStatus = ["pending", "preparing", "out-for-delivery", "delivered"];
+  
+    !validStatus.includes(status)
+      ? next({
+          status: 400,
+          message: `Order must have a status of pending, preparing, out-for-delivery, delivered`
+        })
+      : status === "delivered"
+      ? next({ status: 400, message: `A delivered order cannot be changed` })
+      : next();
+  }
+
+  function deleteStatusValidator(req, res, next) {
+    const status = res.locals.orders.status;
+    console.log("this is the status on delete", status)
+    status === "pending"
+      ? next()
+      : next({
+          status: 400,
+          message: `An order cannot be deleted unless it is pending`
+        });
   }
   
   module.exports = {
@@ -120,7 +158,9 @@ function create(req, res) {
       validatorFor('dishes'),
       dishValidator,
       quantityValidator,
+      validateBodyAndParamsIdMatch,
+      updateStatusValidator,
       update
     ],
-    delete: [orderExists, destroy]
+    delete: [orderExists, deleteStatusValidator, destroy]
   }
