@@ -84,10 +84,8 @@ function priceValidator(req, res, next){
     const { data: {  price } = {} } = req.body;
 
     if( typeof(price)==='number' && price > 0){
-        console.log("passed:", price)
         next();
     }else{
-    console.log("failed:", price)
     next({
         message: 'Dish must have a price that is an integer greater than 0',
         status: 400
